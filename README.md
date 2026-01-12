@@ -9,11 +9,9 @@
 
 ## 直接下载链接
 
-[windows x64版本](./bin/windows_amd64/dget.exe)
-[linux amd64版本](./bin/linux_amd64/dget)
-[linux arm版本](./bin/linux_arm/dget)
-[Mac 传统版本](./bin/darwin_amd64/dget)
-[Mac arm64版本](./bin/darwin_arm64/dget)
+[windows x64版本](./bin/dget.exe)
+[linux amd64版本](./bin/dget-linux-amd64)
+[Mac arm64版本](./bin/dget)
 
 ## 使用go安装dget
 
