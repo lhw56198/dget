@@ -263,7 +263,9 @@ func (m *Client) Install(syncCount int, _registry, d, tag string, arch string, p
 	}
 
 	logrus.Infof("获得Manifest信息，共%d层需要下载", len(info.Layers))
-	err = m.download(syncCount, _registry, d, tag, info.Config.Digest, authHeader, info.Layers)
+	
+	// 修改点 1：这里调用 download 时传入了 arch 参数
+	err = m.download(syncCount, _registry, d, tag, arch, info.Config.Digest, authHeader, info.Layers)
 	if err != nil {
 		return err
 	}
@@ -299,19 +301,17 @@ func (m *Client) getTokenWithBasicAuth(urlStr, service, repository, username, pa
 	return "", err
 }
 
-// download 函数已修复：移除 goto，改用 if-else
-func (m *Client) download(syncCount int, _registry, d, tag string, digest digest.Digest, authHeader http.Header, layers []Layer) (err error) {
+// 修改点 2：增加了 arch 参数
+func (m *Client) download(syncCount int, _registry, d, tag string, arch string, digest digest.Digest, authHeader http.Header, layers []Layer) (err error) {
 	var tmpDir = fmt.Sprintf("tmp_%s_%s", d, tag)
 	err = os.MkdirAll(tmpDir, 0777)
 	if err != nil {
 		return err
 	}
 
-	// 检查缓存
 	if _, e := os.Stat(filepath.Join(tmpDir, "repositories")); e == nil {
 		logrus.Info(tmpDir, " is downloaded,use dir as cache")
 	} else {
-		// 缓存不存在，开始下载逻辑
 		var req *http.Request
 		req, err = http.NewRequest("GET", fmt.Sprintf("https://%s/v2/%s/blobs/%s", _registry, d, digest), nil)
 		if err != nil {
@@ -443,11 +443,15 @@ func (m *Client) download(syncCount int, _registry, d, tag string, digest digest
 		}
 	}
 
-	// 最后的打包逻辑 (相当于之前的 maketar 标签)
 	if err == nil {
-		err = writeDirToTarGz(tmpDir, tmpDir+"-img.tar.gz")
+		// 修改点 3：文件名中加入架构信息
+		// 将 linux/amd64 转换为 linux_amd64 以适应文件命名规范
+		safeArch := strings.ReplaceAll(arch, "/", "_")
+		outputName := fmt.Sprintf("%s-%s-img.tar.gz", tmpDir, safeArch)
+
+		err = writeDirToTarGz(tmpDir, outputName)
 		if err == nil {
-			fmt.Println("write tar success", tmpDir+"-img.tar.gz")
+			fmt.Println("write tar success", outputName)
 		} else {
 			logrus.Debugln("write tar fail", err)
 		}
